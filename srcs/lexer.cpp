@@ -1,16 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   parsing.cpp                                        :+:      :+:    :+:   */
+/*   lexer.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/26 15:00:59 by htaheri           #+#    #+#             */
-/*   Updated: 2024/07/26 16:22:09 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/07/26 18:44:15 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-# include "parsing.hpp"
+# include "lexer.hpp"
 
 Lexer::Lexer(const std::string &filename): _inputFile(filename), _pos(0)
 {

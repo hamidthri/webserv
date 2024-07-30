@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   parsing.hpp                                        :+:      :+:    :+:   */
+/*   lexer.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/26 14:42:41 by htaheri           #+#    #+#             */
-/*   Updated: 2024/07/26 15:51:00 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/07/26 18:43:59 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,7 @@ enum TokenType
 
 struct Token
 {
-    TokenType type;
+    TokenType   type;
     std::string value;
     Token(TokenType type, const std::string &value): type(type), value(value) {}
 };
@@ -46,6 +46,9 @@ class Lexer
         std::string _input;
         size_t _pos;
         
+        
+
+
         
 
     public:
