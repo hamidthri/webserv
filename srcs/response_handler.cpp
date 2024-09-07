@@ -6,7 +6,7 @@
 /*   By: mmomeni <mmomeni@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/27 15:15:49 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/06 21:23:51 by mmomeni          ###   ########.fr       */
+/*   Updated: 2024/09/07 18:39:22 by mmomeni          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -212,7 +212,7 @@ void ResponseHandler::handleGET()
                 _response.statusMessage = "OK";
                 _response.body = content;
                 _response.headers["Content-Type"] = "text/html";
-                _response.headers.at("Content-Length") = std::to_string(content.size());
+                _response.headers["Content-Length"] = std::to_string(content.size());
                 return;
             }
             catch (const std::exception &e)
