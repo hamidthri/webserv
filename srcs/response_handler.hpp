@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   response_handler.hpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mmomeni <mmomeni@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/27 15:22:48 by htaheri           #+#    #+#             */
-/*   Updated: 2024/07/30 13:10:35 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/06 21:10:18 by mmomeni          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 # include "fstream"
 #include <map>
 
+off_t fileSize(const std::string &filePath);
 class ResponseHandler
 {
     private:
@@ -39,6 +40,8 @@ class ResponseHandler
         std::string getContentType(const std::string &path);
         std::string getFileExtension(const std::string &path);
         void parseFormData(const std::string &formData, std::map<std::string, std::string> &fields);
+        bool isDirectory(const std::string &path);
+        std::string generateDirectoryListing(const std::string &path);
 };
 
 #endif
