@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   response_handler.hpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mmomeni <mmomeni@student.42.fr>            +#+  +:+       +#+        */
+/*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/27 15:22:48 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/06 21:10:18 by mmomeni          ###   ########.fr       */
+/*   Updated: 2024/09/07 19:57:07 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,9 @@ class ResponseHandler
         void parseFormData(const std::string &formData, std::map<std::string, std::string> &fields);
         bool isDirectory(const std::string &path);
         std::string generateDirectoryListing(const std::string &path);
+        void executeCGI(const std::string &scriptPath, const std::string &queryString);
+        void parseCGIResponse(const std::string &cgiOutput);
+        void handleFileUpload(const std::string &uploadDir, const std::string &fileData, const std::string &fileName);
 };
 
 #endif
