@@ -16,7 +16,6 @@
 #include <string>
 #include <stdexcept>
 
-
 #define MAX_EVENTS 10
 #define BUFFER_SIZE 1024
 
@@ -28,13 +27,16 @@ private:
     socklen_t addrlen;
     int kq;
 
-    void setNonBlocking(int sock) {
+    void setNonBlocking(int sock)
+    {
         int flags = fcntl(sock, F_GETFL, 0);
-        if (flags == -1) {
+        if (flags == -1)
+        {
             perror("fcntl F_GETFL");
             exit(EXIT_FAILURE);
         }
-        if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
+        if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1)
+        {
             perror("fcntl F_SETFL O_NONBLOCK");
             exit(EXIT_FAILURE);
         }
@@ -83,7 +85,8 @@ public:
 
         // Create kqueue instance
         kq = kqueue();
-        if (kq == -1) {
+        if (kq == -1)
+        {
             perror("kqueue");
             exit(EXIT_FAILURE);
         }
@@ -91,7 +94,8 @@ public:
         // Add server socket to kqueue
         struct kevent ev;
         EV_SET(&ev, server_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-        if (kevent(kq, &ev, 1, NULL, 0, NULL) == -1) {
+        if (kevent(kq, &ev, 1, NULL, 0, NULL) == -1)
+        {
             perror("kevent: server_fd");
             exit(EXIT_FAILURE);
         }
@@ -105,105 +109,121 @@ public:
         while (true)
         {
             int nev = kevent(kq, NULL, 0, events, MAX_EVENTS, NULL);
-            if (nev == -1) {
+            if (nev == -1)
+            {
                 perror("kevent wait");
                 exit(EXIT_FAILURE);
             }
 
-            for (int i = 0; i < nev; i++) {
-                if (events[i].ident == (uintptr_t)server_fd) {
+            for (int i = 0; i < nev; i++)
+            {
+                if (events[i].ident == (uintptr_t)server_fd)
+                {
                     // New connection
                     int client_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
-                    if (client_socket == -1) {
+                    if (client_socket == -1)
+                    {
                         perror("accept");
                         continue;
                     }
                     setNonBlocking(client_socket);
                     struct kevent ev;
                     EV_SET(&ev, client_socket, EVFILT_READ, EV_ADD, 0, 0, NULL);
-                    if (kevent(kq, &ev, 1, NULL, 0, NULL) == -1) {
+                    if (kevent(kq, &ev, 1, NULL, 0, NULL) == -1)
+                    {
                         perror("kevent: client_socket");
                         close(client_socket);
                     }
-                } else {
+                }
+                else
+                {
                     // Existing connection - handle data
                     handleClient(events[i].ident);
                 }
             }
         }
     }
-  void handleClient(int client_socket)
-{
-    char buffer[BUFFER_SIZE];
-    std::string requestData;
-    ssize_t bytes_read;
+    void handleClient(int client_socket)
+    {
+        char buffer[BUFFER_SIZE];
+        std::string requestData;
+        ssize_t bytes_read;
 
-    while ((bytes_read = read(client_socket, buffer, BUFFER_SIZE)) > 0) {
-        requestData.append(buffer, bytes_read);
-    }
-
-    if (bytes_read == -1 && errno != EAGAIN) {
-        perror("read");
-        close(client_socket);
-        return;
-    }
-
-    if (!requestData.empty()) {
-        try
+        while ((bytes_read = read(client_socket, buffer, BUFFER_SIZE)) > 0)
         {
-            // Parse the HTTP request
-            RequestParser parser(requestData);
-            HttpRequest request = parser.parse();
+            requestData.append(buffer, bytes_read);
+        }
 
-            // Handle the request and get the response
-            ResponseHandler handler(request);
-            HttpResponse response = handler.handleRequest();
+        if (bytes_read == -1 && errno != EAGAIN)
+        {
+            perror("read");
+            close(client_socket);
+            return;
+        }
 
-            // Prepare the response headers
-            std::string responseStr = "HTTP/1.1 " + std::to_string(response.statusCode) + " " + response.statusMessage + "\r\n";
-            for (std::map<std::string, std::string>::const_iterator it = response.headers.begin(); it != response.headers.end(); ++it)
+        if (!requestData.empty())
+        {
+            try
             {
-                responseStr += it->first + ": " + it->second + "\r\n";
-            }
-            responseStr += "\r\n";
+                // Parse the HTTP request
+                RequestParser parser(requestData);
+                HttpRequest request = parser.parse();
 
-            // Send headers
-            send(client_socket, responseStr.c_str(), responseStr.length(), 0);
+                // Handle the request and get the response
+                ResponseHandler handler(request);
+                HttpResponse response = handler.handleRequest();
 
-            // If the response is serving a file, send the file content
-            if (response.isFile) {
-                int file_fd = open(response.filePath.c_str(), O_RDONLY);
-                if (file_fd != -1) {
-                    off_t offset = 0;
-                    off_t len = fileSize(response.filePath); // Get the file size
-
-                    while (len > 0) {
-                        if (sendfile(file_fd, client_socket, offset, &len, NULL, 0) == -1) {
-                            perror("sendfile");
-                            break;
-                        }
-                    }
-                    close(file_fd);
+                // Prepare the response headers
+                std::string responseStr = "HTTP/1.1 " + std::to_string(response.statusCode) + " " + response.statusMessage + "\r\n";
+                for (std::map<std::string, std::string>::const_iterator it = response.headers.begin(); it != response.headers.end(); ++it)
+                {
+                    responseStr += it->first + ": " + it->second + "\r\n";
                 }
-            } else {
-                // For non-file responses, send the body content directly
-                send(client_socket, response.body.c_str(), response.body.length(), 0);
+                responseStr += "\r\n";
+
+                // Send headers
+                send(client_socket, responseStr.c_str(), responseStr.length(), 0);
+
+                // If the response is serving a file, send the file content
+                if (response.isFile)
+                {
+                    int file_fd = open(response.filePath.c_str(), O_RDONLY);
+                    if (file_fd != -1)
+                    {
+                        off_t offset = 0;
+                        off_t len = fileSize(response.filePath); // Get the file size
+
+                        while (len > 0)
+                        {
+                            if (sendfile(file_fd, client_socket, offset, &len, NULL, 0) == -1)
+                            {
+                                perror("sendfile");
+                                break;
+                            }
+                        }
+                        close(file_fd);
+                    }
+                }
+                else
+                {
+                    // For non-file responses, send the body content directly
+                    send(client_socket, response.body.c_str(), response.body.length(), 0);
+                }
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error processing request: " << e.what() << std::endl;
+                std::string errorResponse = "HTTP/1.1 500 Internal Server Error\r\n\r\nAn error occurred while processing your request.";
+                send(client_socket, errorResponse.c_str(), errorResponse.length(), 0);
             }
         }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Error processing request: " << e.what() << std::endl;
-            std::string errorResponse = "HTTP/1.1 500 Internal Server Error\r\n\r\nAn error occurred while processing your request.";
-            send(client_socket, errorResponse.c_str(), errorResponse.length(), 0);
-        }
-    }
 
-    // Remove client from kqueue and close the socket
-    struct kevent ev;
-    EV_SET(&ev, client_socket, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-    kevent(kq, &ev, 1, NULL, 0, NULL);
-    close(client_socket);
-}
+        // Remove client from kqueue and close the socket
+        struct kevent ev;
+        EV_SET(&ev, client_socket, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+        kevent(kq, &ev, 1, NULL, 0, NULL);
+        close(client_socket);
+    }
     ~WebServer()
     {
         close(server_fd);
@@ -220,7 +240,7 @@ void signalHandler(int signal)
 
 int main(int argc, char const *argv[])
 {
-    signal(SIGINT, signalHandler);  // Handle Ctrl+C interrupt signal
+    signal(SIGINT, signalHandler); // Handle Ctrl+C interrupt signal
 
     if (argc != 2)
     {
@@ -235,14 +255,24 @@ int main(int argc, char const *argv[])
         Parser parser(lexer.Tokenize());
         std::vector<ServerBlock> serverBlocks = parser.Parse();
 
-        // Get the port number from the configuration
-        int port = serverBlocks[0].directives["listen"].empty() ? 8080 : std::stoi(serverBlocks[0].directives["listen"]);
+        // print all server blocks' ports
+        for (size_t i = 0; i < serverBlocks.size(); i++)
+        {
+            ServerBlock serverBlock = serverBlocks[i];
+            int port = serverBlock.directives["listen"].empty() ? 8080 : std::stoi(serverBlock.directives["listen"]);
+            std::cout << "detected server block with port: " << port << std::endl;
+        }
 
-        // Create and run the web server
-        WebServer server(port);
-        server.run();
+        // for each server block, create a web server
+        for (size_t i = 0; i < serverBlocks.size(); i++)
+        {
+            ServerBlock serverBlock = serverBlocks[i];
+            int port = serverBlock.directives["listen"].empty() ? 8080 : std::stoi(serverBlock.directives["listen"]);
+            WebServer server(port);
+            server.run();
+        }
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;

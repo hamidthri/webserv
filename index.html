@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes typewriter {
+            0% {
+                width: 0;
+            }
+
+            100% {
+                width: 100%;
+            }
+        }
+
+        @keyframes blinkCaret {
+
+            0%,
+            100% {
+                border-color: transparent;
+            }
+
+            50% {
+                border-color: rgb(0, 0, 0);
+            }
+        }
+
+        @keyframes fade {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .typewriter h1 {
+            overflow: hidden;
+            border-right: .15em solid rgb(0, 0, 0);
+            /* Cursor effect */
+            white-space: nowrap;
+            animation:
+                typewriter 1.5s steps(30, end),
+                blinkCaret 0.75s step-end infinite;
+        }
+
+        .typewriter span {
+            opacity: 0;
+            display: inline-block;
+            animation: fade 1.5s forwards;
+            animation-delay: 1s;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 h-screen flex flex-col items-center justify-center">
+    <div class="text-center">
+        <div class="typewriter">
+            <h1 class="text-5xl md:text-6xl font-serif">
+                Welcome to our Webserver
+            </h1>
+            <div class="text-left p-3">
+                <span class="text-sm">mmomeni + htaheri</span>
+            </div>
+        </div>
+        <div class="text-left mt-4">
+            <div>
+                <h3>Video example:</h3>
+                <video width="500" height="200" controls class="rounded-xl">
+                    <source src="./assets/BigBuckBunny.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="mt-8">
+                <h3>Audio Example</h3>
+                <audio controls>
+                    <source src="./assets/sample.mp3" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
