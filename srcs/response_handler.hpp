@@ -1,39 +1,36 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   response_handler.hpp                               :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/07/27 15:22:48 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/07 19:57:07 by htaheri          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef RESPONSE_HANDLER_HPP
-# define RESPONSE_HANDLER_HPP
+#define RESPONSE_HANDLER_HPP
 
-# include "request.hpp"
+#include "request.hpp"
 #include <string>
-# include "fstream"
 #include <map>
 
 off_t fileSize(const std::string &filePath);
+
+struct CGIProcess {
+    pid_t pid;                 // Process ID of the CGI script
+    int pipeFd;                // Read end of the pipe from the CGI script
+    int clientSock;            // Client socket to send data to
+    std::string buffer;        // Buffer to accumulate output
+    time_t startTime;          // Timestamp when the CGI started
+};
+
+
 class ResponseHandler
 {
     private:
         HttpResponse        _response;
         const HttpRequest   &_request;
+        int                 _clientSocket; // Client socket
         std::map<std::string, std::string> _dataStore;
 
-
     public:
-        ResponseHandler(const HttpRequest &request);
+        // Constructor accepts clientSocket
+        ResponseHandler(const HttpRequest &request, int clientSocket);
         HttpResponse handleRequest();
         void handleGET();
         void handlePOST();
         void handleDELETE();
-
 
         bool isFileExists(const std::string &path);
         std::string getFileContent(const std::string &path);
@@ -43,7 +40,6 @@ class ResponseHandler
         bool isDirectory(const std::string &path);
         std::string generateDirectoryListing(const std::string &path);
         void executeCGI(const std::string &scriptPath, const std::string &queryString);
-        void parseCGIResponse(const std::string &cgiOutput);
         void handleFileUpload(const std::string &uploadDir, const std::string &fileData, const std::string &fileName);
 };
 

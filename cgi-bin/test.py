@@ -20,7 +20,8 @@ print("<html><body>")
 print("<h1>CGI Test Script</h1>")
 
 print("<h2>Environment Variables:</h2>")
-
+while True:
+    pass
 print("<ul>")
 for key, value in os.environ.items():
     print(f"<li><strong>{key}:</strong> {value}</li>")
