@@ -83,8 +83,45 @@
                     Your browser does not support the audio element.
                 </audio>
             </div>
+            <div class="mt-8">
+                <h3>Form Example</h3>
+                <form action="./cgi-bin/form.py" method="POST">
+                    <div class="mb-4">
+                        <label for="name" class="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                        <input type="text" name="name" id="name"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="mb-6">
+                        <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                        <input type="email" name="email" id="email"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                            type="submit">
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="mt-8">
+                <h3>File Upload</h3>
+                <form action="./upload" method="POST" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="file" class="block text-gray-700 text-sm font-bold mb-2">File</label>
+                        <input type="file" name="file" id="file"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="flex items center justify-between">
+                        <button
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                            type="submit">
+                            Upload
+                        </button>
+                    </div>
+            </div>
         </div>
-    </div>
 </body>
 
 </html>

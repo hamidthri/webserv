@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   response_handler.cpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mmomeni <mmomeni@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/27 15:15:49 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/14 19:31:16 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/15 19:22:37 by mmomeni          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <errno.h>
+#include <map>
+#include <iostream>
+#include <vector>
 
 // Global SIGCHLD handler to reap child processes (it is defiend in main.cpp)
 extern "C" void sigchld_handler(int sig);
@@ -89,6 +92,30 @@ ResponseHandler::ResponseHandler(const HttpRequest &request, int clientSocket)
 {
 }
 
+std::string urlDecode(const std::string &s)
+{
+    std::string result;
+    for (size_t i = 0; i < s.length(); ++i)
+    {
+        if (s[i] == '+')
+        {
+            result += ' ';
+        }
+        else if (s[i] == '%' && i + 2 < s.length() && isxdigit(s[i + 1]) && isxdigit(s[i + 2]))
+        {
+            int value;
+            std::istringstream(s.substr(i + 1, 2)) >> std::hex >> value;
+            result += static_cast<char>(value);
+            i += 2;
+        }
+        else
+        {
+            result += s[i];
+        }
+    }
+    return result;
+}
+
 void ResponseHandler::parseFormData(const std::string &formData, std::map<std::string, std::string> &fields)
 {
     std::istringstream iss(formData);
@@ -99,8 +126,8 @@ void ResponseHandler::parseFormData(const std::string &formData, std::map<std::s
         size_t pos = pair.find('=');
         if (pos != std::string::npos)
         {
-            std::string key = pair.substr(0, pos);
-            std::string value = pair.substr(pos + 1);
+            std::string key = urlDecode(pair.substr(0, pos));
+            std::string value = urlDecode(pair.substr(pos + 1));
             fields[key] = value;
         }
     }
@@ -361,9 +388,10 @@ void ResponseHandler::handlePOST()
 
     if (getFileExtension(requestedPath) == "py")
     {
-        executeCGI(requestedPath, "");
+        executeCGI(requestedPath, _request.body);
         return;
-    }
+    } 
+    
 
     std::map<std::string, std::string> formData;
     parseFormData(_request.body, formData);
@@ -382,12 +410,16 @@ void ResponseHandler::handlePOST()
     }
     else
     {
+        std::string _body;
         for (std::map<std::string, std::string>::const_iterator it = formData.begin(); it != formData.end(); ++it)
+        {
             _dataStore[it->first] = it->second;
+            _body += it->first + ": " + it->second + "\n";
+        }
 
         _response.statusCode = 200;
         _response.statusMessage = "OK";
-        _response.body = "Form data submitted successfully.";
+        _response.body = "Form data submitted successfully.\n" + _body;
         _response.headers["Content-Type"] = "text/plain";
 
         std::ostringstream oss;
@@ -438,8 +470,23 @@ void ResponseHandler::handleDELETE()
     }
 }
 
-void ResponseHandler::executeCGI(const std::string &scriptPath, const std::string &queryString) {
-    // Prepare environment variables
+void ResponseHandler::executeCGI(const std::string &scriptPath, const std::string &queryString)
+{
+
+    struct stat buffer;
+    if (stat(scriptPath.c_str(), &buffer) != 0 || !(buffer.st_mode & S_IXUSR))
+    {
+        std::cout << "Script not found: " << scriptPath << std::endl;
+        _response.statusCode = 404;
+        _response.statusMessage = "Not Found";
+        _response.body = "The requested script was not found on this server.";
+        _response.headers["Content-Type"] = "text/plain";
+        std::ostringstream oss;
+        oss << _response.body.size();
+        _response.headers["Content-Length"] = oss.str();
+        return;
+    }
+
     std::map<std::string, std::string> envVars;
     envVars["GATEWAY_INTERFACE"] = "CGI/1.1";
     envVars["REQUEST_METHOD"] = (_request.method == POST) ? "POST" : "GET";
@@ -448,11 +495,20 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
     envVars["CONTENT_TYPE"] = (_request.headers.find("Content-Type") != _request.headers.end()) ? _request.headers.at("Content-Type") : "";
     envVars["SCRIPT_NAME"] = _request.url;
     envVars["SERVER_PROTOCOL"] = _request.version;
-    // Add more environment variables as needed
+
+    std::vector<std::string> envStrings;
+    envStrings.reserve(envVars.size() + 1);
+    for (std::map<std::string, std::string>::const_iterator it = envVars.begin(); it != envVars.end(); ++it)
+        envStrings.push_back(it->first + "=" + it->second);
+    std::vector<char *> envp(envStrings.size() + 1);
+    for (size_t i = 0; i < envStrings.size(); ++i)
+        envp[i] = const_cast<char *>(envStrings[i].c_str());
+    envp[envStrings.size()] = NULL;
 
     int pipefd[2];
-    if (pipe(pipefd) == -1) {
-        // Handle pipe creation error
+    if (pipe(pipefd) == -1)
+    {
+        std::cout << "Error creating pipe." << std::endl;
         _response.statusCode = 500;
         _response.statusMessage = "Internal Server Error";
         _response.body = "Error creating pipe.";
@@ -464,8 +520,9 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
     }
 
     pid_t pid = fork();
-    if (pid < 0) {
-        // Fork failed
+    if (pid < 0)
+    {
+        std::cout << "Error forking process." << std::endl;
         _response.statusCode = 500;
         _response.statusMessage = "Internal Server Error";
         _response.body = "Error forking process.";
@@ -478,114 +535,39 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
         return;
     }
 
-    if (pid == 0) { // Child process
-        // Close read end of the pipe
+    if (pid == 0)
+    {
         close(pipefd[0]);
 
-        // Set up environment variables
-        for (std::map<std::string, std::string>::const_iterator it = envVars.begin(); it != envVars.end(); ++it) {
-            setenv(it->first.c_str(), it->second.c_str(), 1);
-        }
-        
-        // Redirect stdout and stderr to the write end of the pipe
         dup2(pipefd[1], STDOUT_FILENO);
         dup2(pipefd[1], STDERR_FILENO);
         close(pipefd[1]);
 
-        // Execute the CGI script
         char *argv[] = {const_cast<char *>("python3"), const_cast<char *>(scriptPath.c_str()), NULL};
-        execv("/usr/bin/python3", argv);
+        execve("/usr/local/bin/python3", argv, envp.data());
 
-        // If execv fails
-        perror("execv failed");
+        std::cout << "execve failed" << std::endl;
+        perror("execve failed");
         exit(1);
-    } else { // Parent process
-        // Close write end of the pipe
+    }
+    else
+    {
         close(pipefd[1]);
 
-        // Set the read end of the pipe to non-blocking
         int flags = fcntl(pipefd[0], F_GETFL, 0);
         fcntl(pipefd[0], F_SETFL, flags | O_NONBLOCK);
 
-        // Store the CGI process information
         CGIProcess cgiProc;
         cgiProc.pid = pid;
         cgiProc.pipeFd = pipefd[0];
         cgiProc.clientSock = _clientSocket;
         cgiProc.startTime = time(NULL);
 
-        // Add the CGI process to the map
         cgiProcesses[pipefd[0]] = cgiProc;
 
-        // No immediate response; the response will be sent when data is available
-        _response.statusCode = 0; // Indicate that response will be sent later
+        _response.statusCode = 0; // the status code will be set later by the CGI program
     }
 }
-
-// void ResponseHandler::parseCGIResponse(const std::string &cgiOutput)
-// {
-//     size_t headerEnd = cgiOutput.find("\r\n\r\n");
-//     if (headerEnd == std::string::npos)
-//     {
-//         headerEnd = cgiOutput.find("\n\n");
-//         if (headerEnd == std::string::npos)
-//         {
-//             _response.statusCode = 500;
-//             _response.statusMessage = "Internal Server Error";
-//             _response.body = "Invalid CGI response.";
-//             _response.headers["Content-Type"] = "text/plain";
-//             std::ostringstream oss;
-//             oss << _response.body.size();
-//             _response.headers["Content-Length"] = oss.str();
-//             return;
-//         }
-//     }
-
-//     std::string headerPart = cgiOutput.substr(0, headerEnd);
-//     std::string bodyPart = cgiOutput.substr(headerEnd + ((headerEnd == cgiOutput.find("\r\n\r\n")) ? 4 : 2));
-
-//     // Parse headers
-//     std::istringstream headerStream(headerPart);
-//     std::string headerLine;
-
-//     while (std::getline(headerStream, headerLine) && !headerLine.empty())
-//     {
-//         // Remove any trailing \r
-//         if (!headerLine.empty() && headerLine[headerLine.length() - 1] == '\r')
-//             headerLine.erase(headerLine.length() - 1);
-
-//         size_t colonPos = headerLine.find(':');
-//         if (colonPos != std::string::npos)
-//         {
-//             std::string key = headerLine.substr(0, colonPos);
-//             std::string value = headerLine.substr(colonPos + 1);
-//             // Trim leading whitespace from value
-//             size_t first = value.find_first_not_of(" \t");
-//             if (first != std::string::npos)
-//                 value = value.substr(first);
-//             else
-//                 value = "";
-//             _response.headers[key] = value;
-//         }
-//     }
-
-//     _response.body = bodyPart;
-
-//     // Set status code and message
-//     _response.statusCode = 200;
-//     _response.statusMessage = "OK";
-
-//     // Ensure Content-Type is set
-//     if (_response.headers.find("Content-Type") == _response.headers.end())
-//     {
-//         _response.headers["Content-Type"] = "text/plain";
-//     }
-
-//     // Set Content-Length
-//     std::ostringstream oss;
-//     oss << _response.body.size();
-//     _response.headers["Content-Length"] = oss.str();
-// }
 
 void ResponseHandler::handleFileUpload(const std::string &uploadDir, const std::string &fileData, const std::string &fileName)
 {
@@ -596,7 +578,7 @@ void ResponseHandler::handleFileUpload(const std::string &uploadDir, const std::
     {
         _response.statusCode = 500;
         _response.statusMessage = "Internal Server Error";
-        _response.body = "Failed to save uploaded file.";
+        _response.body = "Failed to open file for writing: " + filePath;
         _response.headers["Content-Type"] = "text/plain";
 
         std::ostringstream oss;

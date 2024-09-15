@@ -555,7 +555,7 @@ int main(int argc, char **argv)
                 time_t currentTime = time(NULL);
                 for (std::map<int, CGIProcess>::iterator it = cgiProcesses.begin(); it != cgiProcesses.end();)
                 {
-                    if (difftime(currentTime, it->second.startTime) > 5)
+                    if (difftime(currentTime, it->second.startTime) > 20)
                     { // 10 seconds timeout
                         // CGI script timed out
                         kill(it->second.pid, SIGKILL);
