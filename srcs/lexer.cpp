@@ -6,7 +6,7 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/26 15:00:59 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/18 19:58:50 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 20:43:28 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,25 +83,25 @@ Token Lexer::parseNumericValue()
         value += currentChar();
         advance();
     }
-    return Token(NUMERIC, value);
+    return (Token(NUMERIC, value));
 }
 
 Token Lexer::parseSemicolon()
 {
     advance();
-    return Token(SEMICOLON, ";");
+    return (Token(SEMICOLON, ";"));
 }
 
 Token Lexer::parseOpenBracket()
 {
     advance();
-    return Token(OPEN_BRACKET, "{");
+    return (Token(OPEN_BRACKET, "{"));
 }
 
 Token Lexer::parseCloseBracket()
 {
     advance();
-    return Token(CLOSE_BRACKET, "}");
+    return (Token(CLOSE_BRACKET, "}"));
 }
 
 Token Lexer::parseUnknown()
@@ -109,7 +109,7 @@ Token Lexer::parseUnknown()
     std::string value;
     value += currentChar();
     advance();
-    return Token(UNKNOWN, value);
+    return (Token(UNKNOWN, value));
 }
 
 std::vector<Token> Lexer::tokenize()

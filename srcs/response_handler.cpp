@@ -6,33 +6,14 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/27 15:15:49 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/18 19:17:25 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 20:41:04 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "response_handler.hpp"
 #include "request_parser.hpp"
-#include <sstream>
-#include <dirent.h>
-#include <sys/stat.h> 
-#include <fstream>    
-#include <fcntl.h>    
-#include <unistd.h>   
-#include <stdexcept>
-#include <string>
-#include <sys/wait.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <cstdlib>
-#include <cstring>
-#include <errno.h>
-#include <map>
-#include <iostream>
-#include <vector>
 
 extern "C" void sigchld_handler(int sig);
-
 
 void register_sigchld_handler()
 {
@@ -74,7 +55,7 @@ std::string getPartialFileContent(const std::string &filePath, off_t offset, siz
     delete[] buffer;
     close(fd);
 
-    return content;
+    return (content);
 }
 
 
@@ -82,7 +63,7 @@ off_t fileSize(const std::string &filePath)
 {
     struct stat stat_buf;
     if (stat(filePath.c_str(), &stat_buf) != 0) throw std::runtime_error("Error getting file size: " + filePath);
-    return stat_buf.st_size;
+    return (stat_buf.st_size);
 }
 
 extern std::map<int, CGIProcess> cgiProcesses; 
@@ -109,11 +90,9 @@ std::string urlDecode(const std::string &s)
             i += 2;
         }
         else
-        {
             result += s[i];
-        }
     }
-    return result;
+    return (result);
 }
 
 bool ResponseHandler::isDirectory(const std::string &path)
@@ -127,38 +106,38 @@ std::string ResponseHandler::getFileContent(const std::string &path)
     std::ifstream file(path.c_str(), std::ios::binary);
     if (!file)
         throw std::runtime_error("Failed to open file: " + path);
-    return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return (std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>()));
 }
 
 std::string ResponseHandler::getContentType(const std::string &path)
 {
     std::string extension = getFileExtension(path);
     if (extension == "html" || extension == "htm")
-        return "text/html";
+        return ("text/html");
     else if (extension == "css")
-        return "text/css";
+        return ("text/css");
     else if (extension == "js")
-        return "application/javascript";
+        return ("application/javascript");
     else if (extension == "jpg" || extension == "jpeg")
-        return "image/jpeg";
+        return ("image/jpeg");
     else if (extension == "png")
-        return "image/png";
+        return ("image/png");
     else if (extension == "gif")
-        return "image/gif";
+        return ("image/gif");
     else if (extension == "svg")
-        return "image/svg+xml";
+        return ("image/svg+xml");
     else if (extension == "ico")
-        return "image/x-icon";
+        return ("image/x-icon");
     else
-        return "application/octet-stream";
+        return ("application/octet-stream");
 }
 
 std::string ResponseHandler::getFileExtension(const std::string &path)
 {
     size_t pos = path.find_last_of('.');
     if (pos == std::string::npos)
-        return "";
-    return path.substr(pos + 1);
+        return ("");
+    return (path.substr(pos + 1));
 }
 
 std::string ResponseHandler::generateDirectoryListing(const std::string &path)
@@ -173,16 +152,14 @@ std::string ResponseHandler::generateDirectoryListing(const std::string &path)
         {
             std::string name = ent->d_name;
             if (name != "." && name != "..")
-            {
                 content += "<li><a href=\"" + name + "\">" + name + "</a></li>";
-            }
         }
         closedir(dir);
     }
     else throw std::runtime_error("Could not open directory");
 
     content += "</ul></body></html>";
-    return content;
+    return (content);
 }
 
 HttpResponse ResponseHandler::handleRequest()
@@ -213,7 +190,6 @@ void ResponseHandler::handleGET()
 {
     std::string requestedPath = "." + _request.url; 
 
-    
     size_t queryPos = requestedPath.find('?');
     std::string queryString = "";
     if (queryPos != std::string::npos)
@@ -221,23 +197,19 @@ void ResponseHandler::handleGET()
         queryString = requestedPath.substr(queryPos + 1);
         requestedPath = requestedPath.substr(0, queryPos);
     }
-
-    
     if (getFileExtension(requestedPath) == "py")
     {
         std::cout << "Executing CGI script: " << requestedPath << std::endl;
         executeCGI(requestedPath, queryString);
-        return;
+        return ;
     }
 
     if (isDirectory(requestedPath))
     {
-        
         std::string indexPath = requestedPath + "/index.html";
         if (doesFileExist(indexPath)) requestedPath = indexPath;
         else
         {
-            
             try
             {
                 std::string content = generateDirectoryListing(requestedPath);
@@ -248,7 +220,7 @@ void ResponseHandler::handleGET()
                 std::ostringstream oss;
                 oss << content.size();
                 _response.headers["Content-Length"] = oss.str();
-                return;
+                return ;
             }
             catch (const std::exception &e)
             {
@@ -259,7 +231,7 @@ void ResponseHandler::handleGET()
                 std::ostringstream oss;
                 oss << _response.body.size();
                 _response.headers["Content-Length"] = oss.str();
-                return;
+                return ;
             }
         }
     }
@@ -269,7 +241,6 @@ void ResponseHandler::handleGET()
         try
         {
             std::string contentType = getContentType(requestedPath);
-
             std::map<std::string, std::string>::const_iterator it = _request.headers.find("Range");
 
             if (it != _request.headers.end())
@@ -289,9 +260,7 @@ void ResponseHandler::handleGET()
                     size_t end = endStr.empty() ? filesize - 1 : atoi(endStr.c_str()); 
 
                     if (end >= filesize)
-                    {
                         end = filesize - 1;
-                    }
 
                     size_t contentLength = end - start + 1;
 
@@ -315,7 +284,6 @@ void ResponseHandler::handleGET()
 
             else
             {
-                
                 std::string content = getFileContent(requestedPath);
 
                 _response.statusCode = 200;
@@ -354,8 +322,6 @@ void ResponseHandler::handleGET()
     }
 }
 
-
-
 void ResponseHandler::parseFormData(const std::string &formData, std::map<std::string, std::string> &fields)
 {
     std::istringstream iss(formData);
@@ -393,7 +359,6 @@ void ResponseHandler::parseMultipartFormData(const std::string &body, const std:
         else
             part = body.substr(pos);
 
-        
         size_t headerEnd = part.find("\r\n\r\n");
         if (headerEnd == std::string::npos)
             continue; 
@@ -468,7 +433,7 @@ void ResponseHandler::handlePOST()
     if (getFileExtension(requestedPath) == "py")
     {
         executeCGI(requestedPath, _request.body);
-        return;
+        return ;
     }
     std::string contentType = _request.headers.at("Content-Type");
     if (contentType.find("multipart/form-data") != std::string::npos)
@@ -495,7 +460,7 @@ void ResponseHandler::handlePOST()
             std::ostringstream oss;
             oss << _response.body.size();
             _response.headers["Content-Length"] = oss.str();
-            return;
+            return ;
         }
         else
         {
@@ -507,7 +472,7 @@ void ResponseHandler::handlePOST()
             std::ostringstream oss;
             oss << _response.body.size();
             _response.headers["Content-Length"] = oss.str();
-            return;
+            return ;
         }
     }
     else if (contentType == "application/x-www-form-urlencoded")
@@ -525,7 +490,7 @@ void ResponseHandler::handlePOST()
             std::ostringstream oss;
             oss << _response.body.size();
             _response.headers["Content-Length"] = oss.str();
-            return;
+            return ;
         }
         else
         {
@@ -544,7 +509,7 @@ void ResponseHandler::handlePOST()
             std::ostringstream oss;
             oss << _response.body.size();
             _response.headers["Content-Length"] = oss.str();
-            return;
+            return ;
         }
     }
     else
@@ -557,7 +522,7 @@ void ResponseHandler::handlePOST()
         std::ostringstream oss;
         oss << _response.body.size();
         _response.headers["Content-Length"] = oss.str();
-        return;
+        return ;
     }
 }
 
@@ -605,7 +570,6 @@ void ResponseHandler::handleDELETE()
 
 void ResponseHandler::executeCGI(const std::string &scriptPath, const std::string &queryString)
 {
-
     struct stat buffer;
     if (stat(scriptPath.c_str(), &buffer) != 0 || !(buffer.st_mode & S_IXUSR))
     {
@@ -617,7 +581,7 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
         std::ostringstream oss;
         oss << _response.body.size();
         _response.headers["Content-Length"] = oss.str();
-        return;
+        return ;
     }
 
     std::map<std::string, std::string> envVars;
@@ -649,7 +613,7 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
         std::ostringstream oss;
         oss << _response.body.size();
         _response.headers["Content-Length"] = oss.str();
-        return;
+        return ;
     }
 
     pid_t pid = fork();
@@ -665,7 +629,7 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
         _response.headers["Content-Length"] = oss.str();
         close(pipefd[0]);
         close(pipefd[1]);
-        return;
+        return ;
     }
 
     if (pid == 0)
@@ -689,15 +653,12 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
 
         int flags = fcntl(pipefd[0], F_GETFL, 0);
         fcntl(pipefd[0], F_SETFL, flags | O_NONBLOCK);
-
         CGIProcess cgiProc;
         cgiProc.pid = pid;
         cgiProc.pipeFd = pipefd[0];
         cgiProc.clientSock = _clientSocket;
         cgiProc.startTime = time(NULL);
-
         cgiProcesses[pipefd[0]] = cgiProc;
-
         _response.statusCode = 0; 
     }
 }
@@ -705,7 +666,6 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
 void ResponseHandler::handleFileUpload(const std::string &uploadDir, const std::string &fileData, const std::string &fileName)
 {
     std::string filePath = uploadDir + "/" + fileName;
-
     std::ofstream outFile(filePath.c_str(), std::ios::binary);
     if (!outFile)
     {
@@ -717,12 +677,11 @@ void ResponseHandler::handleFileUpload(const std::string &uploadDir, const std::
         std::ostringstream oss;
         oss << _response.body.size();
         _response.headers["Content-Length"] = oss.str();
-        return;
+        return ;
     }
 
     outFile.write(fileData.c_str(), fileData.size());
     outFile.close();
-
     _response.statusCode = 200;
     _response.statusMessage = "OK";
     _response.body = "File uploaded successfully.";

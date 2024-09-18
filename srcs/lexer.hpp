@@ -6,7 +6,7 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/26 14:42:41 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/18 19:33:02 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 20:31:39 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include <iostream>
 #include <cctype>
 #include <stdexcept>
+#include <map>
 
 enum TokenType {
     WHITESPACE,

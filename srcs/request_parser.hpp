@@ -6,7 +6,7 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/27 15:02:26 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/18 18:24:31 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 20:36:02 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,10 @@
 #define REQUEST_HANDLER_HPP
 
 #include "request.hpp"
-#include <string>
+#include <sstream>
+#include <cstdlib> 
 
 std::string trim(const std::string &str);
-
 
 class RequestParser {
 private:

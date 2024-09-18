@@ -6,7 +6,7 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/18 20:00:23 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/18 20:00:24 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 20:34:40 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,21 @@
 #define RESPONSE_HANDLER_HPP
 
 #include "request.hpp"
-#include <string>
-#include <map>
+#include <sstream>
+#include <dirent.h>
+#include <sys/stat.h> 
+#include <fstream>    
+#include <fcntl.h>    
+#include <unistd.h>   
+#include <stdexcept>
+#include <sys/wait.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <cstdlib>
+#include <cstring>
+#include <errno.h>
+#include <vector>
 
 off_t fileSize(const std::string &filePath);
 
@@ -26,7 +39,6 @@ struct CGIProcess {
     std::string buffer;        
     time_t startTime;          
 };
-
 
 class ResponseHandler
 {

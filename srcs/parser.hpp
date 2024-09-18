@@ -6,7 +6,7 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/26 18:38:51 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/14 17:02:55 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 20:31:53 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,6 @@
 
 #include "lexer.hpp"
 #include "server_block.hpp"
-#include <string>
-#include <vector>
-#include <map>
-#include <stdexcept>
 
 class Parser {
 private:

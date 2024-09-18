@@ -6,14 +6,11 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/18 20:00:07 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/18 20:00:08 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 20:35:18 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "request_parser.hpp"
-#include <iostream>
-#include <sstream>
-#include <cstdlib> 
 
 std::string trim(const std::string &str)
 {
