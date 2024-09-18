@@ -6,7 +6,7 @@
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/26 18:51:59 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/14 17:57:48 by htaheri          ###   ########.fr       */
+/*   Updated: 2024/09/18 19:57:58 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,7 @@ Token Parser::currentToken() {
         return Token(UNKNOWN, "");
 }
 
-void Parser::advance() {
-    if (_pos < _tokens.size())
+void Parser::advance() {if (_pos < _tokens.size())
         _pos++;
 }
 
@@ -102,9 +101,7 @@ std::map<std::string, std::string> Parser::parseDirectives() {
         }
     }
 
-    if (!value.empty() && value[value.size() - 1] == ' ') {
-        value.erase(value.size() - 1); 
-    }
+    if (!value.empty() && value[value.size() - 1] == ' ') value.erase(value.size() - 1);
 
     if (!isTokenType(SEMICOLON)) {
         throw std::runtime_error("Expected ';' at the end of directive value but found '" + currentToken().value + "'");

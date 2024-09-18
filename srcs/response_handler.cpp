@@ -3,20 +3,21 @@
 /*                                                        :::      ::::::::   */
 /*   response_handler.cpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mmomeni <mmomeni@student.42.fr>            +#+  +:+       +#+        */
+/*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/27 15:15:49 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/15 19:22:37 by mmomeni          ###   ########.fr       */
+/*   Updated: 2024/09/18 19:17:25 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "response_handler.hpp"
+#include "request_parser.hpp"
 #include <sstream>
 #include <dirent.h>
-#include <sys/stat.h> // For 'struct stat' and related functions
-#include <fstream>    // For file handling
-#include <fcntl.h>    // For open()
-#include <unistd.h>   // For pread(), fork(), execv(), dup2(), etc.
+#include <sys/stat.h> 
+#include <fstream>    
+#include <fcntl.h>    
+#include <unistd.h>   
 #include <stdexcept>
 #include <string>
 #include <sys/wait.h>
@@ -30,16 +31,15 @@
 #include <iostream>
 #include <vector>
 
-// Global SIGCHLD handler to reap child processes (it is defiend in main.cpp)
 extern "C" void sigchld_handler(int sig);
 
-// Register the SIGCHLD handler (to be called once in main server)
+
 void register_sigchld_handler()
 {
     struct sigaction sa;
     sa.sa_handler = sigchld_handler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART; // Restart interrupted system calls
+    sa.sa_flags = SA_RESTART; 
     if (sigaction(SIGCHLD, &sa, NULL) == -1)
     {
         perror("sigaction");
@@ -47,14 +47,17 @@ void register_sigchld_handler()
     }
 }
 
-// Function to get a partial content of a file
+bool ResponseHandler::doesFileExist(const std::string &path)
+{
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
+
 std::string getPartialFileContent(const std::string &filePath, off_t offset, size_t length)
 {
     int fd = open(filePath.c_str(), O_RDONLY);
-    if (fd == -1)
-    {
-        throw std::runtime_error("Error opening file: " + filePath);
-    }
+    if (fd == -1) throw std::runtime_error("Error opening file: " + filePath);
 
     char *buffer = new char[length];
     ssize_t bytesRead = pread(fd, buffer, length, offset);
@@ -74,18 +77,15 @@ std::string getPartialFileContent(const std::string &filePath, off_t offset, siz
     return content;
 }
 
-// Function to get the size of a file
+
 off_t fileSize(const std::string &filePath)
 {
     struct stat stat_buf;
-    if (stat(filePath.c_str(), &stat_buf) != 0)
-    {
-        throw std::runtime_error("Error getting file size: " + filePath);
-    }
+    if (stat(filePath.c_str(), &stat_buf) != 0) throw std::runtime_error("Error getting file size: " + filePath);
     return stat_buf.st_size;
 }
 
-extern std::map<int, CGIProcess> cgiProcesses; // Declare the map from main.cpp
+extern std::map<int, CGIProcess> cgiProcesses; 
 
 ResponseHandler::ResponseHandler(const HttpRequest &request, int clientSocket)
     : _request(request), _clientSocket(clientSocket)
@@ -114,29 +114,6 @@ std::string urlDecode(const std::string &s)
         }
     }
     return result;
-}
-
-void ResponseHandler::parseFormData(const std::string &formData, std::map<std::string, std::string> &fields)
-{
-    std::istringstream iss(formData);
-    std::string pair;
-
-    while (std::getline(iss, pair, '&'))
-    {
-        size_t pos = pair.find('=');
-        if (pos != std::string::npos)
-        {
-            std::string key = urlDecode(pair.substr(0, pos));
-            std::string value = urlDecode(pair.substr(pos + 1));
-            fields[key] = value;
-        }
-    }
-}
-
-bool ResponseHandler::isFileExists(const std::string &path)
-{
-    struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
 }
 
 bool ResponseHandler::isDirectory(const std::string &path)
@@ -202,10 +179,7 @@ std::string ResponseHandler::generateDirectoryListing(const std::string &path)
         }
         closedir(dir);
     }
-    else
-    {
-        throw std::runtime_error("Could not open directory");
-    }
+    else throw std::runtime_error("Could not open directory");
 
     content += "</ul></body></html>";
     return content;
@@ -237,9 +211,9 @@ HttpResponse ResponseHandler::handleRequest()
 
 void ResponseHandler::handleGET()
 {
-    std::string requestedPath = "." + _request.url; // Prepend '.' to make it relative to current directory
+    std::string requestedPath = "." + _request.url; 
 
-    // Remove query string if present
+    
     size_t queryPos = requestedPath.find('?');
     std::string queryString = "";
     if (queryPos != std::string::npos)
@@ -248,24 +222,22 @@ void ResponseHandler::handleGET()
         requestedPath = requestedPath.substr(0, queryPos);
     }
 
-    // Check if the requested file is a CGI script
+    
     if (getFileExtension(requestedPath) == "py")
     {
+        std::cout << "Executing CGI script: " << requestedPath << std::endl;
         executeCGI(requestedPath, queryString);
         return;
     }
 
     if (isDirectory(requestedPath))
     {
-        // Check for index.html in directory
+        
         std::string indexPath = requestedPath + "/index.html";
-        if (isFileExists(indexPath))
-        {
-            requestedPath = indexPath;
-        }
+        if (doesFileExist(indexPath)) requestedPath = indexPath;
         else
         {
-            // Generate directory listing
+            
             try
             {
                 std::string content = generateDirectoryListing(requestedPath);
@@ -292,7 +264,7 @@ void ResponseHandler::handleGET()
         }
     }
 
-    if (isFileExists(requestedPath))
+    if (doesFileExist(requestedPath))
     {
         try
         {
@@ -304,17 +276,17 @@ void ResponseHandler::handleGET()
             {
                 std::string rangeHeader = it->second;
 
-                // Ensure the Range header starts with "bytes="
+                
                 if (rangeHeader.compare(0, 6, "bytes=") == 0)
                 {
-                    // Parse the Range header
+                    
                     size_t dashPos = rangeHeader.find('-');
-                    std::string startStr = rangeHeader.substr(6, dashPos - 6);                                  // Get the start value
-                    std::string endStr = (dashPos == std::string::npos) ? "" : rangeHeader.substr(dashPos + 1); // Get the end value, if present
+                    std::string startStr = rangeHeader.substr(6, dashPos - 6);                                  
+                    std::string endStr = (dashPos == std::string::npos) ? "" : rangeHeader.substr(dashPos + 1); 
 
-                    size_t start = startStr.empty() ? 0 : atoi(startStr.c_str()); // If no start, assume 0
+                    size_t start = startStr.empty() ? 0 : atoi(startStr.c_str()); 
                     size_t filesize = fileSize(requestedPath);
-                    size_t end = endStr.empty() ? filesize - 1 : atoi(endStr.c_str()); // If no end, assume the end of file
+                    size_t end = endStr.empty() ? filesize - 1 : atoi(endStr.c_str()); 
 
                     if (end >= filesize)
                     {
@@ -325,7 +297,7 @@ void ResponseHandler::handleGET()
 
                     std::string content = getPartialFileContent(requestedPath, start, contentLength);
 
-                    _response.statusCode = 206; // Partial Content
+                    _response.statusCode = 206; 
                     _response.statusMessage = "Partial Content";
                     _response.body = content;
                     _response.headers["Content-Type"] = contentType;
@@ -343,7 +315,7 @@ void ResponseHandler::handleGET()
 
             else
             {
-                // Serve the entire file if no range is specified
+                
                 std::string content = getFileContent(requestedPath);
 
                 _response.statusCode = 200;
@@ -382,49 +354,210 @@ void ResponseHandler::handleGET()
     }
 }
 
+
+
+void ResponseHandler::parseFormData(const std::string &formData, std::map<std::string, std::string> &fields)
+{
+    std::istringstream iss(formData);
+    std::string pair;
+
+    while (std::getline(iss, pair, '&'))
+    {
+        size_t pos = pair.find('=');
+        if (pos != std::string::npos)
+        {
+            std::string key = urlDecode(pair.substr(0, pos));
+            std::string value = urlDecode(pair.substr(pos + 1));
+            fields[key] = value;
+        }
+    }
+}
+
+void ResponseHandler::parseMultipartFormData(const std::string &body, const std::string &boundary, std::map<std::string, std::string> &fields)
+{
+    std::string delimiter = "--" + boundary;
+    size_t pos = 0;
+    size_t end;
+
+    while ((pos = body.find(delimiter, pos)) != std::string::npos)
+    {
+        pos += delimiter.length();
+        if (body.substr(pos, 2) == "--")
+            break; 
+        if (body.substr(pos, 2) == "\r\n")
+            pos += 2;
+        end = body.find(delimiter, pos);
+        std::string part;
+        if (end != std::string::npos)
+            part = body.substr(pos, end - pos);
+        else
+            part = body.substr(pos);
+
+        
+        size_t headerEnd = part.find("\r\n\r\n");
+        if (headerEnd == std::string::npos)
+            continue; 
+        std::string headers = part.substr(0, headerEnd);
+        std::string content = part.substr(headerEnd + 4);
+
+        std::string fieldName;
+        std::string fileName;
+        std::istringstream headerStream(headers);
+        std::string headerLine;
+        while (std::getline(headerStream, headerLine))
+        {
+            if (!headerLine.empty() && headerLine[headerLine.size() - 1] == '\r')
+                headerLine = headerLine.substr(0, headerLine.size() - 1);
+            size_t colonPos = headerLine.find(':');
+            if (colonPos != std::string::npos)
+            {
+                std::string headerName = trim(headerLine.substr(0, colonPos));
+                std::string headerValue = trim(headerLine.substr(colonPos + 1));
+                if (headerName == "Content-Disposition")
+                {
+                    size_t namePos = headerValue.find("name=\"");
+                    if (namePos != std::string::npos)
+                    {
+                        namePos += 6;
+                        size_t nameEnd = headerValue.find("\"", namePos);
+                        fieldName = headerValue.substr(namePos, nameEnd - namePos);
+                    }
+                    size_t filenamePos = headerValue.find("filename=\"");
+                    if (filenamePos != std::string::npos)
+                    {
+                        filenamePos += 10;
+                        size_t filenameEnd = headerValue.find("\"", filenamePos);
+                        fileName = headerValue.substr(filenamePos, filenameEnd - filenamePos);
+                    }
+                }
+            }
+        }
+
+        if (!fieldName.empty())
+        {
+            if (!fileName.empty())
+            {
+                std::string uploadDir = "./uploads";
+                struct stat st;
+                if (stat(uploadDir.c_str(), &st) != 0)
+                {
+                    if (mkdir(uploadDir.c_str(), 0777) != 0)
+                    {
+                        std::cerr << "Error creating directory: " << uploadDir << std::endl;
+                        continue;
+                    }
+                }
+                std::string filePath = "./uploads/" + fileName;
+                std::ofstream ofs(filePath.c_str(), std::ios::binary);
+                if (ofs)
+                {
+                    ofs.write(content.c_str(), content.size() - 2); 
+                    ofs.close();
+                    fields[fieldName] = fileName;
+                }
+            }
+            else fields[fieldName] = content.substr(0, content.size() - 2);
+        }
+        pos = end;
+    }
+}
+
 void ResponseHandler::handlePOST()
 {
     std::string requestedPath = "." + _request.url;
-
     if (getFileExtension(requestedPath) == "py")
     {
         executeCGI(requestedPath, _request.body);
         return;
-    } 
-    
-
-    std::map<std::string, std::string> formData;
-    parseFormData(_request.body, formData);
-
-    if (formData.empty())
+    }
+    std::string contentType = _request.headers.at("Content-Type");
+    if (contentType.find("multipart/form-data") != std::string::npos)
     {
-        _response.statusCode = 400;
-        _response.statusMessage = "Bad Request";
-        _response.body = "No form data submitted.";
+        size_t boundaryPos = contentType.find("boundary=");
+        if (boundaryPos != std::string::npos)
+        {
+            std::string boundary = contentType.substr(boundaryPos + 9);
+            std::map<std::string, std::string> formData;
+            parseMultipartFormData(_request.body, boundary, formData);
+            
+            std::string _body;
+            for (std::map<std::string, std::string>::const_iterator it = formData.begin(); it != formData.end(); ++it)
+            {
+                _dataStore[it->first] = it->second;
+                _body += it->first + ": " + it->second + "\n";
+            }
+
+            _response.statusCode = 200;
+            _response.statusMessage = "OK";
+            _response.body = "Form data submitted successfully.\n" + _body;
+            _response.headers["Content-Type"] = "text/plain";
+
+            std::ostringstream oss;
+            oss << _response.body.size();
+            _response.headers["Content-Length"] = oss.str();
+            return;
+        }
+        else
+        {
+            _response.statusCode = 400;
+            _response.statusMessage = "Bad Request";
+            _response.body = "Missing boundary in Content-Type header.";
+            _response.headers["Content-Type"] = "text/plain";
+
+            std::ostringstream oss;
+            oss << _response.body.size();
+            _response.headers["Content-Length"] = oss.str();
+            return;
+        }
+    }
+    else if (contentType == "application/x-www-form-urlencoded")
+    {
+        std::map<std::string, std::string> formData;
+        parseFormData(_request.body, formData);
+
+        if (formData.empty())
+        {
+            _response.statusCode = 400;
+            _response.statusMessage = "Bad Request";
+            _response.body = "No form data submitted.";
+            _response.headers["Content-Type"] = "text/plain";
+
+            std::ostringstream oss;
+            oss << _response.body.size();
+            _response.headers["Content-Length"] = oss.str();
+            return;
+        }
+        else
+        {
+            std::string _body;
+            for (std::map<std::string, std::string>::const_iterator it = formData.begin(); it != formData.end(); ++it)
+            {
+                _dataStore[it->first] = it->second;
+                _body += it->first + ": " + it->second + "\n";
+            }
+
+            _response.statusCode = 200;
+            _response.statusMessage = "OK";
+            _response.body = "Form data submitted successfully.\n" + _body;
+            _response.headers["Content-Type"] = "text/plain";
+
+            std::ostringstream oss;
+            oss << _response.body.size();
+            _response.headers["Content-Length"] = oss.str();
+            return;
+        }
+    }
+    else
+    {
+        _response.statusCode = 415;
+        _response.statusMessage = "Unsupported Media Type";
+        _response.body = "Content-Type not supported.";
         _response.headers["Content-Type"] = "text/plain";
 
         std::ostringstream oss;
         oss << _response.body.size();
         _response.headers["Content-Length"] = oss.str();
         return;
-    }
-    else
-    {
-        std::string _body;
-        for (std::map<std::string, std::string>::const_iterator it = formData.begin(); it != formData.end(); ++it)
-        {
-            _dataStore[it->first] = it->second;
-            _body += it->first + ": " + it->second + "\n";
-        }
-
-        _response.statusCode = 200;
-        _response.statusMessage = "OK";
-        _response.body = "Form data submitted successfully.\n" + _body;
-        _response.headers["Content-Type"] = "text/plain";
-
-        std::ostringstream oss;
-        oss << _response.body.size();
-        _response.headers["Content-Length"] = oss.str();
     }
 }
 
@@ -432,7 +565,7 @@ void ResponseHandler::handleDELETE()
 {
     std::string filePath = "." + _request.url;
 
-    if (isFileExists(filePath))
+    if (doesFileExist(filePath))
     {
         if (remove(filePath.c_str()) != 0)
         {
@@ -565,7 +698,7 @@ void ResponseHandler::executeCGI(const std::string &scriptPath, const std::strin
 
         cgiProcesses[pipefd[0]] = cgiProc;
 
-        _response.statusCode = 0; // the status code will be set later by the CGI program
+        _response.statusCode = 0; 
     }
 }
 

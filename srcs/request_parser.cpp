@@ -5,17 +5,18 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: htaheri <htaheri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/07/27 15:06:06 by htaheri           #+#    #+#             */
-/*   Updated: 2024/09/14 18:01:27 by htaheri          ###   ########.fr       */
+/*   Created: 2024/09/18 20:00:07 by htaheri           #+#    #+#             */
+/*   Updated: 2024/09/18 20:00:08 by htaheri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "request_parser.hpp"
 #include <iostream>
 #include <sstream>
-#include <cstdlib> // For atoi in C++98
+#include <cstdlib> 
 
-std::string trim(const std::string &str) {
+std::string trim(const std::string &str)
+{
     size_t first = str.find_first_not_of(" \t\r\n");
     size_t last = str.find_last_not_of(" \t\r\n");
     if (first == std::string::npos || last == std::string::npos)
@@ -23,7 +24,8 @@ std::string trim(const std::string &str) {
     return str.substr(first, last - first + 1);
 }
 
-std::string RequestParser::readUntil(char delim) {
+std::string RequestParser::readUntil(char delim)
+{
     std::string result;
     while (_pos < _requestData.size() && _requestData[_pos] != delim)
         result += _requestData[_pos++];
@@ -32,14 +34,16 @@ std::string RequestParser::readUntil(char delim) {
     return result;
 }
 
-std::string RequestParser::readLine() {
+std::string RequestParser::readLine()
+{
     std::string line = readUntil('\n');
     if (!line.empty() && line[line.size() - 1] == '\r')
         line = line.substr(0, line.size() - 1);
     return line;
 }
 
-RequestMethod RequestParser::parseMethod(const std::string &methodStr) {
+RequestMethod RequestParser::parseMethod(const std::string &methodStr)
+{
     if (methodStr == "GET")
         return GET;
     else if (methodStr == "POST")
@@ -49,22 +53,28 @@ RequestMethod RequestParser::parseMethod(const std::string &methodStr) {
     return HTTP_UNKNOWN;
 }
 
-void RequestParser::parseHeaders(HttpRequest &request) {
+void RequestParser::parseHeaders(HttpRequest &request)
+{
     std::string line;
-    while (!(line = readLine()).empty()) {
+    while (!(line = readLine()).empty())
+    {
         size_t pos = line.find(':');
-        if (pos != std::string::npos) {
+        if (pos != std::string::npos)
+        {
             std::string headerName = trim(line.substr(0, pos));
             std::string headerValue = trim(line.substr(pos + 1));
             if (!headerName.empty() && !headerValue.empty())
                 request.headers[headerName] = headerValue;
-        } else {
+        }
+        else
+        {
             throw std::runtime_error("Malformed header line: " + line);
         }
     }
 }
 
-HttpRequest RequestParser::parse() {
+HttpRequest RequestParser::parseHeadersOnly()
+{
     HttpRequest request;
     std::string requestLine = readLine();
     std::istringstream requestStream(requestLine);
@@ -83,9 +93,22 @@ HttpRequest RequestParser::parse() {
         throw std::runtime_error("Unsupported HTTP version: " + httpVersion);
 
     parseHeaders(request);
-    if (request.headers.find("Content-Length") != request.headers.end()) {
+    return request;
+}
+
+HttpRequest RequestParser::parse()
+{
+    HttpRequest request = parseHeadersOnly();
+
+    if (request.headers.find("Content-Length") != request.headers.end())
+    {
         int contentLength = atoi(request.headers["Content-Length"].c_str());
-        if (contentLength > 0) {
+        if (contentLength > 0)
+        {
+            if (_pos + contentLength > _requestData.size())
+            {
+                throw std::runtime_error("Incomplete request body");
+            }
             request.body = _requestData.substr(_pos, contentLength);
             _pos += contentLength;
         }
@@ -93,5 +116,6 @@ HttpRequest RequestParser::parse() {
     return request;
 }
 
-RequestParser::RequestParser(const std::string &requestData) : _requestData(requestData), _pos(0) {
+RequestParser::RequestParser(const std::string &requestData) : _requestData(requestData), _pos(0)
+{
 }
